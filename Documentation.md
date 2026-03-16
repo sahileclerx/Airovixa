@@ -1,209 +1,451 @@
 
+# Airovixa Full System Architecture
+
 ## 1. High Level Architecture
-|Component|Technology|
-|--|--|
-|User Web App|Next.js (PWA)|
-|Admin Panel|React|
-|Authentication|Firebase Auth|
-|Database|Firestore|
-|File Storage|Firebase Storage|
-|Backend Logic|Firebase Cloud Functions|
-|Search|Algolia Search|
-|QR / Barcode Scan|react-qr-barcode-scanner|
-|Email|Sendgrid|
+
+```
+                Users (Web + Mobile PWA)
+                         │
+                         │
+                  Next.js Frontend
+                         │
+                 REST API Requests
+                         │
+                PHP API Backend Layer
+                         │
+                   MySQL Database
+                         │
+               Admin Panel (PHP)
+
+```
+
+## 2. Applications in the System
+
+You will build **3 separate applications**.
+
+### 1️⃣ User App (Frontend) -> Next.js (PWA)
+
+Users can:
+-   Register
+-   Login
+-   Search Aircraft Parts
+-   Scan QR / Barcode (Future)
+-   View Part Details
+-   Save Parts
+-   Manage Profile
+
 ----------
 
-## 2. Core Features - User Side (PWA)
-
-1️⃣ Registration  
-2️⃣ Admin approval required  
-3️⃣ Login  
-4️⃣ Aircraft part search  
-5️⃣ Scan QR / Barcode  
-6️⃣ View part details  
-7️⃣ PWA install on phone    
-
-----------
-
-## 3. Admin Panel Features
-
-### User Management
+### 2️⃣ Admin Panel -> PHP + MySQL
 
 Admin can:
--   Approve user
--   Reject user
--   Deactivate user
--   View user list
--   Search user
-
-User states:
-- pending  
-- approved  
-- rejected  
-- deactivated
-
-### Parts Management (CRUD)
-
-Admin can:
--   Add part
--   Edit part
--   Delete part
--   Upload image
--   Generate QR code
--   Upload documents
+-   Manage Users
+-   Approve registrations
+-   Add/Edit/Delete Parts
+-   Upload images
+-   Embed videos
+-   Manage tags
+-   View analytics
 
 ----------
 
-## 4. Database Design (Firestore)
+### 3️⃣ API Server -> PHP REST API
 
-- users  
-  -  userId: primary 
-  -  name: text 
-   - email: text  
-   - company: text
-   - employeeid: text
-   - profilepicture: link
-   - role: user  | admin
-   - status: "pending | approved | rejected"  
-  -  createdAt: date
-
-- parts  
-   - partId  
-   - partName  
-   - partNumber  
-   - aircraftModel  
-   - manufacturer  
-   - description  
-   - category  
-   - barcode  
-   - qrCode  
-   - image  
-   - documents  
-   - video
-   - createdAt
-----------
-
-## 5. Search methods
-
-User can search by: Part Name | Part Number | QR Code | Barcode | Category | Aircraft Model
+Acts as bridge between **Next.js App & Admin Panel** => **MySQL**
 
 ----------
 
-## 6. QR / Barcode Scan
+## 3. Infrastructure Architecture
 
-### Workflow:
-Scan code  > extract partNumber  > fetch part details  > show result
+```
+                Cloudflare CDN
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+   Next.js App                Admin Panel
+  (Vercel / VPS)               (VPS)
+        │                           │
+        └─────────────┬─────────────┘
+                      │
+                   PHP API
+                      │
+                  MySQL DB
+                      │
+                File Storage
+              (S3 / Local Disk)
 
-----------
-
-## 7. Image & File Storage
-### Firebase Storage
-Structure:
-/parts /partId/image.jpg  | document.pdf
-/users_profile_images/userId/image.jpg
-
-----------
-
-
-# 8. PWA Setup
-
-Next.js can become installable app.
-
-### Features:
--   Offline caching
--   Add to home screen
--   Mobile friendly
--   Push notifications (optional)
-    
-### Tools:
-next-pwa
+```
 
 ----------
 
-# 9. Admin Panel Architecture
+## 4. Database Architecture
 
-### Tools:
-React  | Tailwind CSS |  Firebase SDK
+### Tables Overview
 
-### Admin features:
--   Dashboard
--   Users
--   Parts
--   Analytics
-----------
-
-# 14. Folder Structure
-
-### User App (Next.js)
-/app  
-/components  
-/lib  
-/hooks  
-/pages  
-/utils  
-/services
-
-### Admin Panel
-
-/src  
-/components  
-/pages  
-/services  
-/hooks  
-/utils
+- users
+- parts
+- part_images
+- saved_parts
+- user_sessions
+- admin_users
+- logs
 
 ----------
 
-# 15. Performance Planning
-
-For 10k users + 10k parts Firestore is fine.
-Optimize by:
--   Pagination
--   Indexing
--   Caching
--   CDN for images
-
-----------
-
-# 16. Deployment
-
-- Frontend > Vercel
-- Admin > Firebase Hosting
- - Backend > Firebase
-----------
-
-# 17. Estimated Development Phases
-
-**Phase 1** : Authentication + User approval
-**Phase 2** :  Parts CRUD
-**Phase 3**: Search engine
-**Phase 4**: QR / Barcode scanner
-**Phase 5**: PWA + polish
-
-----------
-
-# 18. Approx Timeline
-
-|Component|Time Required|
+### USERS TABLE
+|Field|Type|
 |--|--|
-|Planning|3 days|
-|Designing|3 Days|
-|Auth system (Admin + User with Approval)|5 days|
-|Admin panel (Dashboard)| 3 Days |
-|Parts system|5 days|
-|Search system|5 days|
-|Scanner|3 days|
-|PWA|2 days|
-|Testing|5 days|
-|QA Fixes|10 Days|
-|Total|44 Days|
+|id|bigint|
+|name|varchar|
+|email|varchar|
+|employee_id|text(image_url)|
+|password_hash|varchar|
+|status|enum(pending,approved,blocked)|
+|created_at|timestamp|
+|updated_at|timestamp|
 
 ----------
 
-# 20. Future Features
--   AI part search
--   Image recognition search 
--   Aircraft maintenance logs
--   Supplier integration
--   Inventory tracking
+### PARTS TABLE
+
+|Field|Type|
+|--|--|
+|id|bigint|
+|name|varchar|
+|part_number|varchar|
+|manufacturer|varchar|
+|aircraft_compatibility|varchar|
+|description|longtext|
+|qr_code|varchar|
+|barcode|varchar|
+|images|text(JSON of URLs)|
+|created_at|timestamp|
+|updated_at|timestamp|
+
+----------
+
+### PART IMAGES
+
+|Field|Type|
+|--|--|
+|id|bigint|
+|part_id|bigint|
+|image_url|text|
+
+----------
+
+### SAVED PARTS
+
+|Field|Type|
+|--|--|
+|user_id|bigint|
+|part_id|bigint|
+
+----------
+
+### ADMIN USERS
+|Field|Type|
+|--|--|
+|id|int|
+|name|varchar|
+|email|varchar|
+|password|varchar|
+----------
+
+## 5. API Architecture ( api.airovixa.com )
+
+### AUTH APIs
+
+#### Register
+
+```
+POST /auth/register
+name
+email
+company_name
+employee_id
+password
+status → `pending`
+
+```
+----------
+
+#### Login
+
+```
+POST /auth/login
+JWT Token
+```
+----------
+
+#### Forgot Password
+
+```
+POST /auth/forgot-password
+```
+----------
+
+#### Reset Password
+
+```
+POST /auth/reset-password
+```
+
+----------
+
+### PART SEARCH APIs
+
+#### Search Parts
+
+```
+GET /parts/search?q=engine
+```
+
+----------
+
+#### Scan QR
+
+```
+GET /parts/scan/{code}
+```
+
+----------
+
+#### Part Details
+
+```
+GET /parts/{id}
+```
+
+----------
+
+#### Save Part
+
+```
+POST /parts/save
+```
+
+----------
+
+#### Saved Parts
+
+```
+GET /user/saved
+```
+
+----------
+
+### USER APIs
+
+#### Profile
+
+```
+GET /user/profile
+```
+
+----------
+
+#### Update Profile
+
+```
+PUT /user/profile
+```
+
+----------
+
+#### Change Password
+
+```
+POST /user/change-password
+```
+
+----------
+
+### ADMIN APIs
+
+#### Users
+
+```
+GET /admin/users
+POST /admin/user/approve
+POST /admin/user/block
+```
+----------
+
+### Parts
+
+```
+GET /admin/parts
+POST /admin/parts
+PUT /admin/parts/{id}
+DELETE /admin/parts/{id}
+```
+
+----------
+
+## 6. Next.js Frontend Architecture
+
+```
+/app
+   /login
+   /register
+   /forgot-password
+   /reset-password
+
+   /home
+   /search
+   /part/[id]
+   /saved
+   /settings
+
+/components
+   Header
+   SearchBar
+   PartCard
+   Pagination
+   Footer
+   Loader
+   QRScanner
+
+/lib
+   api.ts
+   auth.ts
+   utils.ts
+
+/store
+   authStore
+   partStore
+
+```
+----------
+
+## 7. Admin Panel Architecture
+
+```
+/admin
+   /dashboard
+   /users
+   /parts
+   /parts/add
+   /parts/edit
+   /settings
+
+```
+----------
+
+Admin Components
+```
+Sidebar
+Topbar
+DataTable
+FormBuilder
+ImageUploader
+RichEditor
+VideoEmbed
+
+```
+
+----------
+
+## 8. Search System
+Initial:
+
+```
+MySQL FULLTEXT SEARCH
+
+```
+
+Query example
+
+```
+SELECT *
+FROM parts
+WHERE MATCH(name,description)
+AGAINST('engine')
+
+```
+
+----------
+
+Future Upgrade
+
+```
+Algolia
+OR
+ElasticSearch
+
+```
+
+----------
+
+## 9. QR / Barcode Scan
+
+Frontend uses:
+
+```
+html5-qrcode
+
+```
+
+Flow
+
+```
+Scan QR
+   ↓
+Get Code
+   ↓
+Call API
+
+GET /parts/scan/{code}
+
+```
+
+----------
+
+## 10. Security
+ **Password** -> bcrypt hashing
+ **Auth** -> JWT tokens
+ **Rate limit** -> attempts
+**Admin** -> IP restriction
+
+----------
+
+## 11. PWA Setup (next-pwa)
+
+#### Features
+- Installable app
+- Offline support
+- Mobile experience
+- Push notifications
+
+----------
+
+## 12. Hosting Architecture
+
+**Recommended Setup** : VPS 8GB RAM
+Example:
+- VPS 8GB RAM
+- DigitalOcean
+- AWS Lightsail
+- Hetzner
+
+
+
+Domains
+- airovixa.com        → Next.js
+- admin.airovixa.com  → Admin Panel
+- api.airovixa.com    → PHP API
+
+----------
+
+## 14. Development Timeline
+**Week 1** -> Design + Database
+**Week 2** -> Admin panel base
+**Week 3** -> Parts CRUD
+**Week 4** -> Auth system
+**Week 5** -> Next.js frontend
+**Week 6** -> Search + Scan
+**Week 7** -> Testing
+**Week 8** -> Deployment
+
 ----------
